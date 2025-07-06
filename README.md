@@ -53,7 +53,17 @@ STUDENT_SERVICE_URL=http://localhost:5007/api/v1/students
 ```
 
 ---
+### Create PostgreSQL database
+```
+createdb school_mgmt
+```
 
+### Run database migrations
+```
+psql -d school_mgmt -f seed_db/tables.sql
+psql -d school_mgmt -f seed_db/seed-db.sql
+```
+---
 ### 🟢 Start the Node.js Backend
 
 1. Clone the backend repository:
