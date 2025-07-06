@@ -62,8 +62,9 @@ STUDENT_SERVICE_URL=http://localhost:5007/api/v1/students
    cd skill-test/backend
    ```
 
-2. Update the controller function in the Node.js backend to include:
-
+2. Update the controller function in the Node.js backend
+   ``` /backend/src/modules/students/students-controller.js```
+   to include:
    ```js
    const handleGetStudentDetail = asyncHandler(async (req, res) => {
        const studentId = req.params.id;
