@@ -1,6 +1,10 @@
 package service
 
 import (
+	"context"
+	"net/http"
+	"time"
+
 	"github.com/mcadriel/go-service/internal/client"
 	"github.com/mcadriel/go-service/internal/config"
 	"github.com/mcadriel/go-service/internal/pdf"
@@ -16,14 +20,16 @@ type service struct {
 }
 
 func NewService(cfg *config.Config) Service {
-	c := client.NewClient(cfg)
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	c := client.NewClient(cfg, httpClient)
 	return &service{
 		cfg:    cfg,
 		client: c,
 	}
 }
+
 func (s *service) GenerateStudentReport(studentID string) ([]byte, error) {
-	student, err := s.client.FetchStudentByID(studentID)
+	student, err := s.client.FetchStudentByID(context.Background(), studentID)
 	if err != nil {
 		return nil, err
 	}

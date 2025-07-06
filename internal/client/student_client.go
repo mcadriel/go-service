@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,24 +13,26 @@ import (
 )
 
 type Client interface {
-	FetchStudentByID(string) (*model.Student, error)
+	FetchStudentByID(context.Context, string) (*model.Student, error)
 }
 
 type client struct {
-	cfg  *config.Config
-	csrf *auth.CSRFTokenGenerator
-	jwt  *auth.JWTTokenGenerator
+	cfg    *config.Config
+	csrf   *auth.CSRFTokenGenerator
+	jwt    *auth.JWTTokenGenerator
+	client *http.Client
 }
 
-func NewClient(cfg *config.Config) Client {
+func NewClient(cfg *config.Config, httpClient *http.Client) Client {
 	return &client{
-		cfg:  cfg,
-		csrf: auth.NewCSRFTokenGenerator(cfg),
-		jwt:  auth.NewJWTTokenGenerator(cfg),
+		cfg:    cfg,
+		csrf:   auth.NewCSRFTokenGenerator(cfg),
+		jwt:    auth.NewJWTTokenGenerator(cfg),
+		client: httpClient,
 	}
 }
 
-func (c *client) FetchStudentByID(id string) (*model.Student, error) {
+func (c *client) FetchStudentByID(ctx context.Context, id string) (*model.Student, error) {
 	url := fmt.Sprintf("%s/%s", c.cfg.StudentServiceURL, id)
 
 	// Generate CSRF token and HMAC
@@ -50,27 +53,30 @@ func (c *client) FetchStudentByID(id string) (*model.Student, error) {
 		return nil, fmt.Errorf("error generating refresh token: %w", err)
 	}
 
-	// Build Cookie header
-	cookieHeader := fmt.Sprintf("accessToken=%s; refreshToken=%s; csrfToken=%s", accessToken, refreshToken, csrfToken)
-
-	// Build HTTP request with CSRF header
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Cookie", cookieHeader)
+
+	// Set Cookies
+	req.AddCookie(&http.Cookie{Name: "accessToken", Value: accessToken})
+	req.AddCookie(&http.Cookie{Name: "refreshToken", Value: refreshToken})
+	req.AddCookie(&http.Cookie{Name: "csrfToken", Value: csrfToken})
+
+	// Set CSRF Header
 	req.Header.Set("x-csrf-token", csrfToken)
 
 	// Send request
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error making request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Handle non-200 status
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to fetch student data: %s", resp.Status)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("failed to fetch student data: %s - %s", resp.Status, string(body))
 	}
 
 	// Parse response
@@ -81,7 +87,7 @@ func (c *client) FetchStudentByID(id string) (*model.Student, error) {
 
 	var student model.Student
 	if err := json.Unmarshal(bodyBytes, &student); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error decoding student json: %w", err)
 	}
 
 	return &student, nil
