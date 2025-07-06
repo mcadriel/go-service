@@ -7,8 +7,7 @@ import (
 
 func main() {
 	// Load environment variables
-	config.LoadConfig()
-
-	s := server.NewHTTPServer()
+	cfg := config.LoadConfig()
+	s := server.NewHTTPServer(cfg)
 	s.Start()
 }

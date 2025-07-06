@@ -7,12 +7,12 @@ import (
 	"github.com/mcadriel/go-service/internal/service"
 )
 
-func RegisterRoutes(r *gin.RouterGroup) {
+func RegisterRoutes(r *gin.RouterGroup, svc service.Service) {
 	r.GET("/students/:id/report", func(c *gin.Context) {
 		id := c.Param("id")
 
 		// Call the service function to generate the student's PDF report
-		studentReport, err := service.GenerateStudentReport(id)
+		studentReport, err := svc.GenerateStudentReport(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
 			return

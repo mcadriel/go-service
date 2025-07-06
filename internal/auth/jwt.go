@@ -1,14 +1,24 @@
 package auth
 
 import (
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/mcadriel/go-service/internal/config"
 )
 
-func GenerateAccessToken() (string, error) {
-	secret := os.Getenv("JWT_ACCESS_TOKEN_SECRET")
+type JWTTokenGenerator struct {
+	cfg *config.Config
+}
+
+func NewJWTTokenGenerator(cfg *config.Config) *JWTTokenGenerator {
+	return &JWTTokenGenerator{
+		cfg: cfg,
+	}
+}
+
+func (j *JWTTokenGenerator) GenerateAccessToken() (string, error) {
+	secret := j.cfg.JwtAccessTokenSecret
 	if secret == "" {
 		return "", jwt.ErrTokenMalformed
 	}
@@ -23,8 +33,8 @@ func GenerateAccessToken() (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func GenerateRefreshToken() (string, error) {
-	secret := os.Getenv("JWT_REFRESH_TOKEN_SECRET")
+func (j *JWTTokenGenerator) GenerateRefreshToken() (string, error) {
+	secret := j.cfg.JwtRefreshTokenSecret
 	if secret == "" {
 		return "", jwt.ErrTokenMalformed
 	}
@@ -39,8 +49,8 @@ func GenerateRefreshToken() (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func GenerateAccessTokenWithCSRF(csrfHmac string) (string, error) {
-	secret := os.Getenv("JWT_ACCESS_TOKEN_SECRET")
+func (j *JWTTokenGenerator) GenerateAccessTokenWithCSRF(csrfHmac string) (string, error) {
+	secret := j.cfg.JwtAccessTokenSecret
 	if secret == "" {
 		return "", jwt.ErrTokenMalformed
 	}

@@ -5,19 +5,30 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"strconv"
 	"time"
+
+	"github.com/mcadriel/go-service/internal/config"
 )
 
+type CSRFTokenGenerator struct {
+	cfg *config.Config
+}
+
+func NewCSRFTokenGenerator(cfg *config.Config) *CSRFTokenGenerator {
+	return &CSRFTokenGenerator{
+		cfg: cfg,
+	}
+}
+
 // Returns: csrf_token, csrf_hmac_hash, expiry, error
-func GenerateCSRFTokenAndHMAC() (string, string, int64, error) {
-	secret := os.Getenv("CSRF_TOKEN_SECRET")
+func (c *CSRFTokenGenerator) GenerateCSRFTokenAndHMAC() (string, string, int64, error) {
+	secret := c.cfg.CsrfTokenSecret
 	if secret == "" {
 		return "", "", 0, fmt.Errorf("CSRF_TOKEN_SECRET is not set")
 	}
 
-	expMs := os.Getenv("CSRF_TOKEN_TIME_IN_MS")
+	expMs := c.cfg.CsrfTokenTimeInMs
 	expDur, err := strconv.Atoi(expMs)
 	if err != nil {
 		expDur = 950000

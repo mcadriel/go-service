@@ -4,15 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mcadriel/go-service/internal/config"
 	"github.com/mcadriel/go-service/internal/handler"
+	"github.com/mcadriel/go-service/internal/service"
 )
 
 type HTTPServer struct {
-	r *gin.Engine
+	r   *gin.Engine
+	cfg *config.Config
 }
 
-func NewHTTPServer() *HTTPServer {
+func NewHTTPServer(cfg *config.Config) *HTTPServer {
 	s := &HTTPServer{
-		r: gin.Default(),
+		r:   gin.Default(),
+		cfg: cfg,
 	}
 	s.routes()
 	return s
@@ -20,9 +23,11 @@ func NewHTTPServer() *HTTPServer {
 
 func (s *HTTPServer) routes() {
 	api := s.r.Group("/api/v1")
-	handler.RegisterRoutes(api)
+
+	service := service.NewService(s.cfg)
+	handler.RegisterRoutes(api, service)
 }
 
 func (s *HTTPServer) Start() {
-	s.r.Run(":" + config.ListeningPort)
+	s.r.Run(":" + s.cfg.ListeningPort)
 }
